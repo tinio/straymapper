@@ -31,9 +31,15 @@
     $(document).ready(function(){
         map = new GMaps({
             div: '#map',
-            zoom: 11,
-            lat: 30.264998,
-            lng: -97.691219
+            {% if location_found %}
+                zoom: 16,
+                lat: {{set_lat}},
+                lng: {{set_lng}}
+            {% else %}
+                zoom: 11,
+                lat: 30.264998,
+                lng: -97.691219
+            {% endif %}
         });
 
         {% for animal in alist %}
@@ -122,6 +128,7 @@
                     </tr>
                 </table>
                 <span style="font-size: 14px;">Has image</span>{{form.has_image}}
+                {{form.address}}
                 <input type="submit" name="search-btn" value="Search" class="btn btn-primary">
                 <input type="submit" name="reset-btn" value="Reset" class="btn btn-link">
             </form>

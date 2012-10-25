@@ -6,6 +6,10 @@ from django.shortcuts import get_object_or_404, render
 from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
 
+from geopy import geocoders
+
+g = geocoders.Google('AIzaSyAZoNPSlRTETltbmJvgYYqol0SLAVBgKs')
+
 #from devserver.modules.profile import devserver_profile
 from straymapper.helpers import unicode_csv_reader
 
@@ -23,6 +27,8 @@ def index(request, template_name='animals/index.html'):
     enddate = datetime.today()
     sort_order = '-intake_date'
     has_image = True
+    place, lat, lng = '', None, None
+    location_found = False
 
     if request.method == 'POST':
         if 'reset-btn' in request.POST:
@@ -66,19 +72,42 @@ def index(request, template_name='animals/index.html'):
         if intake_date_end:
             enddate = intake_date_end
 
+        address = form.cleaned_data['address']
+        if address:
+            try:
+                (place, (lat, lng)) = g.geocode(address)
+            except:
+                location_found = False
+            else:
+                location_found = True
+
+            if 'Austin, TX' not in place:
+                location_found = False
+
         has_image = form.cleaned_data['has_image']
 
     if has_image:
         alist = alist.exclude(photo=u'')
 
     alist = alist.filter(intake_date__gte=startdate,
-                         intake_date__lte=enddate).order_by(sort_order)
+                         intake_date__lte=enddate)
+
+    if location_found:
+        tmpa = Animal()
+        tmpa.geometry = "POINT(%s %s)" % (lng, lat)
+        pt = tmpa.geometry
+        alist = alist.distance(pt).order_by('distance')
+    else:
+        alist = alist.order_by(sort_order)
 
     context['form'] = form
     context['alist'] = alist
     context['results_count'] = alist.count()
     context['startdate'] = startdate
     context['enddate'] = enddate
+    context['set_lat'] = lat
+    context['set_lng'] = lng
+    context['location_found'] = location_found
     return render(request, template_name, context)
 
 
