@@ -28,7 +28,7 @@ def index(request, template_name='animals/index.html'):
     sort_order = '-intake_date'
     has_image = True
     place, lat, lng = '', None, None
-    location_found = True
+    location_found = False
 
     if request.method == 'POST':
         if 'reset-btn' in request.POST:
@@ -78,6 +78,8 @@ def index(request, template_name='animals/index.html'):
                 (place, (lat, lng)) = g.geocode(address)
             except:
                 location_found = False
+            else:
+                location_found = True
 
             if 'Austin, TX' not in place:
                 location_found = False
@@ -94,7 +96,6 @@ def index(request, template_name='animals/index.html'):
         tmpa = Animal()
         tmpa.geometry = "POINT(%s %s)" % (lng, lat)
         pt = tmpa.geometry
-        print pt
         alist = alist.distance(pt).order_by('distance')
     else:
         alist = alist.order_by(sort_order)
