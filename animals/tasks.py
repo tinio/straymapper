@@ -1,18 +1,18 @@
 from datetime import datetime, date
 
-from celery import task
-from geopy import geocoders
+from celery import shared_task
+from geopy.geocoders import GoogleV3
 
 from animals.models import Animal
 
-g = geocoders.Google('AIzaSyAZoNPSlRTETltbmJvgYYqol0SLAVBgKs')
+g = GoogleV3(api_key='AIzaSyAZoNPSlRTETltbmJvgYYqol0SLAVBgKs')
 
 
-@task()
+@shared_task
 def populate(row):
     animal_id = row[3]
     image_updated = True if row[13] == 'New Image Available' else False
-    print "starting to process  %s" % animal_id
+    print("starting to process  %s" % animal_id)
     if not Animal.objects.filter(animal_id=animal_id).exists():
         location = row[1]
         location_found = True
@@ -20,7 +20,7 @@ def populate(row):
             (place, point) = g.geocode(location)
         except:
             location_found = False
-            print 'location not found'
+            print('location not found')
         if location_found:
             a = Animal()
             a.animal_id = animal_id
@@ -47,9 +47,9 @@ def populate(row):
             a.geometry = "POINT (%s %s)" % (point[1], point[0])
             a.photo = ''
             a.save()
-            print a
+            print(a)
     elif image_updated:
-        print 'marking %s as having photo updated' % animal_id
+        print('marking %s as having photo updated' % animal_id)
         a = Animal.objects.get(animal_id=animal_id)
         a.photo_updated = image_updated
         a.save()

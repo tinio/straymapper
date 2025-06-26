@@ -34,15 +34,18 @@ class Animal(models.Model):
     photo_updated = models.BooleanField(default=False)
     photo = models.ImageField(upload_to='straymapper/photos', blank=True,
                               null=True)
-    thumbnail = ImageSpecField([Adjust(contrast=1.2, sharpness=1.1),
-                               ResizeToFill(120, 90)], image_field='photo',
+    thumbnail = ImageSpecField(source='photo',
+                               processors=[Adjust(contrast=1.2, sharpness=1.1),
+                                         ResizeToFill(120, 90)],
                                format="JPEG", options={'quality': 90})
 
-    geometry = models.PointField(srid=4326)
+    # Temporarily commented out for testing without GIS
+    # geometry = models.PointField(srid=4326)
+    geometry = models.CharField(max_length=255, blank=True, null=True)  # Temporary replacement
 
-    objects = models.GeoManager()
+    objects = models.Manager()  # GeoManager is deprecated, regular Manager now has GIS support
 
-    def __unicode__(self):
+    def __str__(self):
         return self.animal_id
 
     def is_adoptable(self):
