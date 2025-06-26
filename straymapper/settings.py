@@ -1,9 +1,18 @@
 import os
 
 import dj_database_url
-import djcelery
 
-djcelery.setup_loader()
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Modern Celery configuration (replaces djcelery.setup_loader())
+# Celery settings
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'America/Chicago'
 
 
 def map_path(directory_name):
@@ -18,15 +27,32 @@ else:
     DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+ALLOWED_HOSTS = ['*']
+
+# CSRF trusted origins for Django 4.0+
+CSRF_TRUSTED_ORIGINS = [
+    'https://work-1-gogfyfmegpvacatt.prod-runtime.all-hands.dev',
+    'https://work-2-gogfyfmegpvacatt.prod-runtime.all-hands.dev',
+]  # Allow all hosts for development
+
 ADMINS = (
     ('Aurelio Tinio', 'aurelio@codeforamerica.org'),
 	('Erik Victory', 'erikvictory@gmail.com')
 )
 MANAGERS = ADMINS
 
-BROKER_BACKEND = 'django'
-DB_CONNECTION_URL = 'postgis://postgres@localhost/straymapperdb'
-DATABASES = {'default': dj_database_url.config(default=DB_CONNECTION_URL)}
+# BROKER_BACKEND = 'django'  # Deprecated, now using Redis via CELERY_BROKER_URL
+# For testing purposes, using SQLite instead of PostGIS
+# DB_CONNECTION_URL = 'postgis://postgres@localhost/straymapperdb'
+# DATABASES = {'default': dj_database_url.config(default=DB_CONNECTION_URL)}
+
+# For testing basic functionality, using regular SQLite (no GIS)
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    }
+}
 
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
@@ -118,7 +144,23 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "django.core.context_processors.request"
 )
 
-MIDDLEWARE_CLASSES = (
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -126,10 +168,13 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'linaro_django_pagination.middleware.PaginationMiddleware',
-)
+    # 'pure_pagination.middleware.PaginationMiddleware',  # Not needed for django-pure-pagination
+]
 
 ROOT_URLCONF = 'straymapper.urls'
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'straymapper.wsgi.application'
@@ -156,11 +201,10 @@ INSTALLED_APPS = (
     'django.contrib.gis',
 
     'django_extensions',
-    'djcelery',
+    'django_celery_beat',  # Replaces djcelery
     'gunicorn',
     'imagekit',
-    'kombu.transport.django',
-    'linaro_django_pagination',
+    'el_pagination',
     'storages',
 
     'animals',
@@ -201,20 +245,17 @@ if DEBUG:
 
     INSTALLED_APPS = INSTALLED_APPS + (
         'devtools',
-        'devserver',
+        'debug_toolbar',  # Replaces devserver
     )
 
-    DEVSERVER_MODULES = (
-        #'devserver.modules.sql.SQLRealTimeModule',
-        #'devserver.modules.sql.SQLSummaryModule',
-        'devserver.modules.profile.ProfileSummaryModule',
-
-        # Modules not enabled by default
-        #'devserver.modules.ajax.AjaxDumpModule',
-        #'devserver.modules.profile.MemoryUseModule',
-        #'devserver.modules.cache.CacheSummaryModule',
-        #'devserver.modules.profile.LineProfilerModule',
-    )
+    # Django Debug Toolbar configuration
+    MIDDLEWARE = MIDDLEWARE + [
+        'debug_toolbar.middleware.DebugToolbarMiddleware',
+    ]
+    
+    INTERNAL_IPS = [
+        '127.0.0.1',
+    ]
 
 try:
     from local_settings import *

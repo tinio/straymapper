@@ -1,18 +1,27 @@
-from django.conf.urls import patterns, include, url
-from django.views.generic.simple import direct_to_template
-
-# Uncomment the next two lines to enable the admin:
+from django.urls import include, path, re_path
+from django.views.generic import TemplateView
 from django.contrib import admin
+from django.conf import settings
+
+# Admin autodiscover is no longer needed in modern Django
 admin.autodiscover()
 
-urlpatterns = patterns(
-    '',
-    (r'^about/$', direct_to_template, {'template': 'about.html'}),
-    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-    url(r'^admin/', include(admin.site.urls)),
+from animals import views as animal_views
 
-    url(r'^animals/', include('animals.urls')),
-    url(r'^report/',  include('reports.urls')),
+urlpatterns = [
+    re_path(r'^about/$', TemplateView.as_view(template_name='about.html')),
+    path('admin/doc/', include('django.contrib.admindocs.urls')),
+    path('admin/', admin.site.urls),
 
-    url(r'^$', 'animals.views.index', name='home'),
-)
+    path('animals/', include('animals.urls')),
+    path('report/', include('reports.urls')),
+
+    re_path(r'^$', animal_views.index, name='home'),
+]
+
+# Add debug toolbar URLs in development
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns = [
+        path('__debug__/', include(debug_toolbar.urls)),
+    ] + urlpatterns

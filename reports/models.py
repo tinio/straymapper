@@ -1,11 +1,11 @@
-from geopy import geocoders
+from geopy.geocoders import GoogleV3
 
 from django.contrib.gis.db import models
 
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFill, Adjust
 
-g = geocoders.Google('AIzaSyAZoNPSlRTETltbmJvgYYqol0SLAVBgKs')
+g = GoogleV3(api_key='AIzaSyAZoNPSlRTETltbmJvgYYqol0SLAVBgKs')
 
 
 class Report(models.Model):
@@ -28,20 +28,23 @@ class Report(models.Model):
     contact_info = models.CharField(max_length=255)
     photo = models.ImageField(upload_to='straymapper/report-photos',
                               blank=True, null=True)
-    thumbnail = ImageSpecField([Adjust(contrast=1.2, sharpness=1.1),
-                               ResizeToFill(120, 90)], image_field='photo',
+    thumbnail = ImageSpecField(source='photo',
+                               processors=[Adjust(contrast=1.2, sharpness=1.1),
+                                         ResizeToFill(120, 90)],
                                format="JPEG", options={'quality': 90})
 
-    geometry = models.PointField(srid=4326, null=True, blank=True)
+    # Temporarily commented out for testing without GIS
+    # geometry = models.PointField(srid=4326, null=True, blank=True)
+    geometry = models.CharField(max_length=255, blank=True, null=True)  # Temporary replacement
 
-    objects = models.GeoManager()
+    objects = models.Manager()  # GeoManager is deprecated, regular Manager now has GIS support
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
-    @models.permalink
     def get_absolute_url(self):
-        return ('reports_view', [str(self.id)])
+        from django.urls import reverse
+        return reverse('reports_view', args=[str(self.id)])
 
     def save(self, *args, **kwargs):
         location_changed = False
@@ -54,7 +57,7 @@ class Report(models.Model):
             try:
                 (place, point) = g.geocode(self.location)
             except:
-                print "Location not found for report %s" % self.id
+                print("Location not found for report %s" % self.id)
             else:
                 self.geometry = "POINT (%s %s)" % (point[1], point[0])
         return super(Report, self).save(*args, **kwargs)

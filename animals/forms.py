@@ -41,4 +41,5 @@ class AnimalSearchForm(forms.Form):
     has_image = forms.BooleanField(required=False, initial=True)
     is_adoptable = forms.BooleanField(required=False)
     address = forms.CharField(
+        required=False,
         widget=forms.TextInput(attrs={'placeholder': 'Enter address'}))

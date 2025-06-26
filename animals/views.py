@@ -6,9 +6,9 @@ from django.shortcuts import get_object_or_404, render
 from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
 
-from geopy import geocoders
+from geopy.geocoders import GoogleV3
 
-g = geocoders.Google('AIzaSyAZoNPSlRTETltbmJvgYYqol0SLAVBgKs')
+g = GoogleV3(api_key='AIzaSyAZoNPSlRTETltbmJvgYYqol0SLAVBgKs')
 
 #from devserver.modules.profile import devserver_profile
 from straymapper.helpers import unicode_csv_reader
@@ -23,7 +23,8 @@ def index(request, template_name='animals/index.html'):
     context = {}
     alist = Animal.objects.filter(
         Q(outcome_type=u'') | Q(outcome_type=u'ADOPTION'))
-    startdate = datetime.today() - timedelta(days=14)
+    # Temporarily use wider date range to include test data from 2012
+    startdate = datetime(2012, 1, 1)
     enddate = datetime.today()
     sort_order = '-intake_date'
     has_image = True

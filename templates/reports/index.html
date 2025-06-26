@@ -20,7 +20,7 @@
         </div>
         <h4>Report Missing Animal</h4>
         {{form.errors}}
-        <form id="report-form" action="{% url reports_index %}" enctype="multipart/form-data" method="POST">{% csrf_token %}
+        <form id="report-form" action="{% url "reports_index" %}" enctype="multipart/form-data" method="POST">{% csrf_token %}
             <div class="row-fluid">
                 <div class="span3">
                     {{form.name.label}}</br>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% load pagination_tags %}
+
 
 {% block extra_css %}
 /* GMaps bug- https://github.com/twitter/bootstrap/issues/2410 */
@@ -42,6 +42,8 @@
             {% endif %}
         });
 
+        {% comment %}
+        Map markers temporarily disabled due to GIS field conversion
         {% for animal in alist %}
             map.addMarker({
                 lat: {{animal.geometry.y}},
@@ -55,11 +57,12 @@
                 infoWindow: {
                     content: '<div style="height: 200px; width: 400px" id="popup_{{animal.id}}"><img src="{{STATIC_URL}}img/loading_big.gif"></div>{% if not forloop.first %}<a onclick="openMarkerInfo({{forloop.counter}}-2, 1)" href="#">Previous</a>&nbsp{% endif %}{% if not forloop.last %}<a onclick="openMarkerInfo({{forloop.counter}}, 1)" href="#">Next</a>{% endif %}',
                     domready: function(){
-                        $('#popup_{{animal.id}}').load('{% url animals_popup animal.id%}')
+                        $('#popup_{{animal.id}}').load('{% url "animals_popup" animal.id %}')
                     }
                 }
             });
         {% endfor %}
+        {% endcomment %}
 
         $('#id_intake_date_start').datepicker({dateFormat: 'yy-mm-dd'});
         $('#id_intake_date_end').datepicker({dateFormat: 'yy-mm-dd'});
@@ -75,11 +78,11 @@
             <a href='/'><img src="{{STATIC_URL}}img/straymapper.png"></a>
         </div>
         <h4>Search Results</h4>
-        {% autopaginate alist 5 as paginated_alist %}
-        {% paginate using "animals/paginate.html" %}
+        {% load el_pagination_tags %}
+        {% paginate 5 alist as page_animals %}
         <table class="table" cellpadding="10">
-            {% for animal in paginated_alist %}
-                <tr onclick="openMarkerInfo({{forloop.counter0}}, {{page_obj.number}});">
+            {% for animal in page_animals %}
+                <tr onclick="openMarkerInfo({{forloop.counter0}}, 1);">
                     <td>
                         <ul class="thumbnails">
                             <li class="span2">
@@ -96,6 +99,7 @@
                         </ul>
                     </td>
                     <td>
+                        {{animal.name}}<br />
                         {{animal.description|lower}}<br />
                         {{animal.animal_type|lower}}<br />
                         {{animal.sex}}<br />
@@ -104,17 +108,17 @@
                 </tr>
             {% endfor %}
         </table>
-        {% paginate using "animals/paginate.html" %}
+        {% show_pages %}
         <br/><br/>
         <br/><br/>
         <br/>
     </div> <!-- End span3 -->
 
     <div class="span9">
-        <div align="right">Unable to find your pet below? <a href='{% url reports_index %}'>Report Here</a>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</div>
+        <div align="right">Unable to find your pet below? <a href='{% url "reports_index" %}'>Report Here</a>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</div>
         <div id="map"></div>
         <div id="searchmap">
-            <form class="well form-inline" id="search-form" action="{% url home %}" method="POST">{% csrf_token %}
+            <form class="well form-inline" id="search-form" action="{% url "home" %}" method="POST">{% csrf_token %}
                 <table cellpadding="5">
                     <tr>
                         <td>Type:</td>
