@@ -3,9 +3,6 @@ from django.views.generic import TemplateView
 from django.contrib import admin
 from django.conf import settings
 
-# Admin autodiscover is no longer needed in modern Django
-admin.autodiscover()
-
 from animals import views as animal_views
 
 urlpatterns = [

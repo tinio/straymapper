@@ -25,7 +25,6 @@ if os.environ.get('DEBUG', 'True') == 'False' or CI == 'true':
     DEBUG = False
 else:
     DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 ALLOWED_HOSTS = ['*']
 
@@ -54,10 +53,13 @@ DATABASES = {
     }
 }
 
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
+# AWS S3 Configuration
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
 AWS_STORAGE_BUCKET_NAME = 'citypetz'
+AWS_S3_REGION_NAME = 'us-east-1'  # Update if different
+AWS_DEFAULT_ACL = None
+AWS_S3_FILE_OVERWRITE = False
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -105,8 +107,17 @@ STATIC_ROOT = map_path('static')
 if DEBUG:
     STATIC_URL = '/static/'
 else:
-    STATICFILES_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
     STATIC_URL = 'https://s3.amazonaws.com/citypetz/'
+
+# Django 4.2+ STORAGES setting
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "storages.backends.s3boto3.S3StaticStorage" if not DEBUG else "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 # Additional locations of static files
 STATICFILES_DIRS = (
@@ -126,23 +137,6 @@ STATICFILES_FINDERS = (
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '_!_j&amp;87u1r_ub$815ts%*pwvjbcr*oudfq1sipl&amp;t*l8w56mk_'
-
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader'
-    #'django.template.loaders.eggs.Loader',
-)
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    "django.contrib.auth.context_processors.auth",
-    "django.core.context_processors.debug",
-    "django.core.context_processors.i18n",
-    "django.core.context_processors.media",
-    "django.core.context_processors.static",
-    "django.contrib.messages.context_processors.messages",
-    "django.core.context_processors.request"
-)
 
 TEMPLATES = [
     {
@@ -178,14 +172,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'straymapper.wsgi.application'
-
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates"
-    # or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-    map_path('templates'),
-)
 
 INSTALLED_APPS = (
     'django.contrib.auth',

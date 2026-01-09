@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
-from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
 
 from geopy.geocoders import GoogleV3
@@ -135,7 +134,7 @@ def process_data(request):
             data_file = request.FILES[key]
             contents = unicode_csv_reader(
                 data_file, dialect='excel', delimiter=',')
-            header = contents.next()
+            header = next(contents)
             for index, row in enumerate(contents):
                 populate.apply_async(args=[row], countdown=index)
     return HttpResponse('cool')
