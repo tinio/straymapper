@@ -1,12 +1,14 @@
-# Production requirements for Stray Mapper - Updated to Django 6.0 LTS
-Django==6.0.1
+# Production requirements for Stray Mapper - Updated to Django 5.2 LTS
+# Django 5.2 LTS is supported until April 2028 and requires Python 3.10 or higher
+# NOTE: Django 6.0+ is not yet supported by django-celery-beat (see issue #977)
+Django==5.2.10
 Pillow==11.1.0
 boto3==1.35.95
 celery==5.5.3
-django-celery-beat==2.8.0
+django-celery-beat==2.8.1  # Latest version
 django-el-pagination==4.1.2
-django-extensions==3.3.0
-django-imagekit==5.0.1
+django-extensions==4.1  # Latest version
+django-imagekit==5.0.0
 geopy==2.4.1
 gunicorn==23.0.0
 django-storages==1.14.4
