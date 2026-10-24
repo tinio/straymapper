@@ -1,9 +1,12 @@
-from datetime import datetime
+from datetime import date, datetime
+from unittest import mock
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.test import TestCase
 
 from animals.models import Animal
+from animals.tasks import populate
 
 
 class AnimalsViewsTestCase(TestCase):
@@ -80,3 +83,62 @@ class AnimalsViewsTestCase(TestCase):
         # self.assertContains(resp, "map.addMarker", count=18, status_code=200)
         # For now, just verify the response is successful
         self.assertEqual(resp.status_code, 200)
+
+
+class AnimalsPagesTestCase(TestCase):
+    fixtures = ['animals_testdata.json']
+
+    def test_static_url_in_templates(self):
+        resp = self.client.get(reverse('animals_index'))
+        self.assertContains(resp, 'href="/static/css/style.css"')
+
+    def test_view_without_photo(self):
+        resp = self.client.get(reverse('animals_view', args=['A635490']))
+        self.assertContains(resp, 'img/NoImage.jpg')
+
+    def test_popup_with_missing_photo_file(self):
+        resp = self.client.get(reverse('animals_popup', args=[3]))
+        self.assertContains(resp, 'img/NoImage.jpg')
+        self.assertContains(resp, 'Take a Closer Look')
+
+    @mock.patch('animals.views.geocode',
+                return_value=('Austin, TX 78703, USA', (30.2844, -97.7751)))
+    def test_address_search_orders_by_distance(self, geocode):
+        resp = self.client.post(reverse('animals_index'), {
+            'intake_date_start': '2012-08-01',
+            'address': '1st St, Austin, TX'})
+        geocode.assert_called_once_with('1st St, Austin, TX')
+        self.assertTrue(resp.context['location_found'])
+        # A595930 is located at the geocoded point
+        self.assertEqual(resp.context['alist'][0].animal_id, 'A595930')
+
+    @mock.patch('animals.views.geocode',
+                return_value=('Dallas, TX, USA', (32.7767, -96.7970)))
+    def test_address_search_outside_austin(self, geocode):
+        resp = self.client.post(reverse('animals_index'), {
+            'intake_date_start': '2012-08-01', 'address': 'Dallas'})
+        self.assertFalse(resp.context['location_found'])
+
+
+class AnimalsDataUploadTestCase(TestCase):
+    ROW = ['09/10/2012', '7201 LEVANDER LOOP AUSTIN TX', 'NORMAL', 'A999999',
+           'DOG', 'MALE', 'YES', 'Rex', '365', 'BLACK LAB', '', '', '', '']
+
+    @mock.patch('animals.views.populate.apply_async')
+    def test_process_data_queues_each_row(self, apply_async):
+        body = 'Header,' * 13 + 'Image\n' + ','.join(self.ROW) + '\n'
+        data_file = SimpleUploadedFile('data.csv', body.encode('utf-8'),
+                                       content_type='text/csv')
+        resp = self.client.post(reverse('animals_process_data'),
+                                {'attachment-1': data_file})
+        self.assertContains(resp, 'cool')
+        apply_async.assert_called_once_with(args=[self.ROW], countdown=0)
+
+    @mock.patch('animals.tasks.geocode',
+                return_value=('Austin, TX 78702, USA', (30.25, -97.69)))
+    def test_populate_creates_animal(self, geocode):
+        populate(self.ROW)
+        animal = Animal.objects.get(animal_id='A999999')
+        self.assertEqual(animal.intake_date, date(2012, 9, 10))
+        self.assertEqual(animal.sex, 'M')
+        self.assertEqual(animal.geometry, 'POINT (-97.69 30.25)')

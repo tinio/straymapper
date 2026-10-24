@@ -1,11 +1,9 @@
-from geopy.geocoders import GoogleV3
-
 from django.contrib.gis.db import models
 
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFill, Adjust
 
-g = GoogleV3(api_key='AIzaSyAZoNPSlRTETltbmJvgYYqol0SLAVBgKs')
+from straymapper.helpers import geocode
 
 
 class Report(models.Model):
@@ -55,7 +53,7 @@ class Report(models.Model):
                 location_changed = True
         if location_changed or not self.id:
             try:
-                (place, point) = g.geocode(self.location)
+                (place, point) = geocode(self.location)
             except:
                 print("Location not found for report %s" % self.id)
             else:

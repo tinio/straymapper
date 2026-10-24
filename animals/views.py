@@ -1,20 +1,24 @@
 from datetime import datetime, timedelta
 
+from django.contrib.gis.geos import GEOSException, GEOSGeometry, Point
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 
-from geopy.geocoders import GoogleV3
-
-g = GoogleV3(api_key='AIzaSyAZoNPSlRTETltbmJvgYYqol0SLAVBgKs')
-
 #from devserver.modules.profile import devserver_profile
-from straymapper.helpers import unicode_csv_reader
+from straymapper.helpers import geocode, unicode_csv_reader
 
 from .models import Animal
 from .forms import AnimalSearchForm
 from .tasks import populate
+
+
+def distance_from(animal, origin):
+    try:
+        return GEOSGeometry(animal.geometry).distance(origin)
+    except (GEOSException, TypeError, ValueError):
+        return float('inf')
 
 
 #@devserver_profile(follow=[])
@@ -75,7 +79,7 @@ def index(request, template_name='animals/index.html'):
         address = form.cleaned_data['address']
         if address:
             try:
-                (place, (lat, lng)) = g.geocode(address)
+                (place, (lat, lng)) = geocode(address)
             except:
                 location_found = False
             else:
@@ -93,16 +97,16 @@ def index(request, template_name='animals/index.html'):
                          intake_date__lte=enddate)
 
     if location_found:
-        tmpa = Animal()
-        tmpa.geometry = "POINT(%s %s)" % (lng, lat)
-        pt = tmpa.geometry
-        alist = alist.distance(pt).order_by('distance')
+        # geometry is stored as WKT text until the GIS field is restored,
+        # so order by distance from the searched address in Python.
+        origin = Point(lng, lat)
+        alist = sorted(alist, key=lambda a: distance_from(a, origin))
     else:
         alist = alist.order_by(sort_order)
 
     context['form'] = form
     context['alist'] = alist
-    context['results_count'] = alist.count()
+    context['results_count'] = len(alist)
     context['startdate'] = startdate
     context['enddate'] = enddate
     context['set_lat'] = lat

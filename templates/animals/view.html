@@ -20,7 +20,11 @@
     <div class="span8">
         <h1>{{animal.name}}</h1>
         <h2>{{animal.description}}</h2>
-        <img src="{{animal.photo.url}}"><br/>
+        {% if animal.photo.size > 231 %}
+            <img src="{{animal.photo.url}}"><br/>
+        {% else %}
+            <img src="{{STATIC_URL}}img/NoImage.jpg"><br/>
+        {% endif %}
     </div>
     <div class="span4">
         {{animal.location}}<br/>
