@@ -80,10 +80,6 @@ SITE_ID = 1
 # to load the internationalization machinery.
 USE_I18N = True
 
-# If you set this to False, Django will not format dates, numbers and
-# calendars according to the current locale.
-USE_L10N = True
-
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 
@@ -187,7 +183,6 @@ INSTALLED_APPS = (
     'django.contrib.gis',
 
     'django_extensions',
-    'django_celery_beat',  # Replaces djcelery
     'gunicorn',
     'imagekit',
     'el_pagination',
@@ -226,8 +221,15 @@ LOGGING = {
     }
 }
 
+# Django 6.1+ MAILERS setting (replaces EMAIL_BACKEND)
+MAILERS = {
+    'default': {
+        'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+    },
+}
+
 if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    MAILERS['default']['BACKEND'] = 'django.core.mail.backends.console.EmailBackend'
 
     INSTALLED_APPS = INSTALLED_APPS + (
         'devtools',
