@@ -1,9 +1,34 @@
 from datetime import datetime
+from unittest import mock
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.test import TestCase
 
 from animals.models import Animal
+
+
+class ProcessDataViewTestCase(TestCase):
+
+    @mock.patch('animals.tasks.populate.apply_async')
+    def test_process_data_queues_each_row(self, apply_async):
+        csv_data = (
+            'Intake Date,Location,Name,Animal ID\r\n'
+            '9/7/2012,"100 Congress Ave, Austin, TX",Smokey,A123\r\n'
+            '9/8/2012,500 E 7th St,Señor Gato,A456\r\n'
+        ).encode('utf-8')
+        upload = SimpleUploadedFile('data.csv', csv_data,
+                                    content_type='text/csv')
+        resp = self.client.post(reverse('animals_process_data'),
+                                {'sender': 'a@example.com', 'data': upload})
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(apply_async.call_args_list, [
+            mock.call(args=[['9/7/2012', '100 Congress Ave, Austin, TX',
+                             'Smokey', 'A123']], countdown=0),
+            mock.call(args=[['9/8/2012', '500 E 7th St', 'Señor Gato',
+                             'A456']], countdown=1),
+        ])
 
 
 class AnimalsViewsTestCase(TestCase):
