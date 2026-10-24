@@ -198,7 +198,7 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.admindocs',
 
-    'django.contrib.gis',
+    # 'django.contrib.gis',  # Commented out for testing
 
     'django_extensions',
     'django_celery_beat',  # Replaces djcelery

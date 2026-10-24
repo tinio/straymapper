@@ -1,6 +1,6 @@
 from geopy.geocoders import GoogleV3
 
-from django.contrib.gis.db import models
+from django.db import models
 
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFill, Adjust
@@ -33,11 +33,10 @@ class Report(models.Model):
                                          ResizeToFill(120, 90)],
                                format="JPEG", options={'quality': 90})
 
-    # Temporarily commented out for testing without GIS
-    # geometry = models.PointField(srid=4326, null=True, blank=True)
+    # Using CharField instead of PointField for testing without GIS
     geometry = models.CharField(max_length=255, blank=True, null=True)  # Temporary replacement
 
-    objects = models.Manager()  # GeoManager is deprecated, regular Manager now has GIS support
+    objects = models.Manager()
 
     def __str__(self):
         return self.name

@@ -93,13 +93,8 @@ def index(request, template_name='animals/index.html'):
     alist = alist.filter(intake_date__gte=startdate,
                          intake_date__lte=enddate)
 
-    if location_found:
-        tmpa = Animal()
-        tmpa.geometry = "POINT(%s %s)" % (lng, lat)
-        pt = tmpa.geometry
-        alist = alist.distance(pt).order_by('distance')
-    else:
-        alist = alist.order_by(sort_order)
+    # Simplified for testing without GIS
+    alist = alist.order_by(sort_order)
 
     context['form'] = form
     context['alist'] = alist
