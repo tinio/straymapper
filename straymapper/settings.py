@@ -25,7 +25,6 @@ if os.environ.get('DEBUG', 'True') == 'False' or CI == 'true':
     DEBUG = False
 else:
     DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 ALLOWED_HOSTS = ['*']
 
@@ -54,10 +53,16 @@ DATABASES = {
     }
 }
 
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
+# Google Geocoding API key used for address search and report locations
+GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
+
+# AWS S3 Configuration
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', '')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', '')
 AWS_STORAGE_BUCKET_NAME = 'citypetz'
+AWS_S3_REGION_NAME = 'us-east-1'  # Update if different
+AWS_DEFAULT_ACL = None
+AWS_S3_FILE_OVERWRITE = False
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -78,21 +83,16 @@ SITE_ID = 1
 # to load the internationalization machinery.
 USE_I18N = True
 
-# If you set this to False, Django will not format dates, numbers and
-# calendars according to the current locale.
-USE_L10N = True
-
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
-# Example: "/home/media/media.lawrence.com/media/"
-MEDIA_ROOT = ''
+# Only used in development; production media is stored on S3.
+MEDIA_ROOT = map_path('media')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.
-# Examples: "http://media.lawrence.com/media/", "http://example.com/media/"
-MEDIA_URL = ''
+MEDIA_URL = '/media/'
 
 # Absolute path to the directory static files should be collected to.
 # Don't put anything in this directory yourself; store your static files
@@ -105,8 +105,18 @@ STATIC_ROOT = map_path('static')
 if DEBUG:
     STATIC_URL = '/static/'
 else:
-    STATICFILES_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
     STATIC_URL = 'https://s3.amazonaws.com/citypetz/'
+
+# Django 4.2+ STORAGES setting. Development keeps uploads on the local
+# filesystem so the site works without AWS credentials.
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage" if not DEBUG else "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "storages.backends.s3boto3.S3StaticStorage" if not DEBUG else "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 # Additional locations of static files
 STATICFILES_DIRS = (
@@ -127,23 +137,6 @@ STATICFILES_FINDERS = (
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '_!_j&amp;87u1r_ub$815ts%*pwvjbcr*oudfq1sipl&amp;t*l8w56mk_'
 
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader'
-    #'django.template.loaders.eggs.Loader',
-)
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    "django.contrib.auth.context_processors.auth",
-    "django.core.context_processors.debug",
-    "django.core.context_processors.i18n",
-    "django.core.context_processors.media",
-    "django.core.context_processors.static",
-    "django.contrib.messages.context_processors.messages",
-    "django.core.context_processors.request"
-)
-
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -152,6 +145,9 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -161,14 +157,13 @@ TEMPLATES = [
 ]
 
 MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    # Uncomment the next line for simple clickjacking protection:
-    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'pure_pagination.middleware.PaginationMiddleware',  # Not needed for django-pure-pagination
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = 'straymapper.urls'
@@ -178,14 +173,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'straymapper.wsgi.application'
-
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates"
-    # or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-    map_path('templates'),
-)
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -201,7 +188,6 @@ INSTALLED_APPS = (
     'django.contrib.gis',
 
     'django_extensions',
-    'django_celery_beat',  # Replaces djcelery
     'gunicorn',
     'imagekit',
     'el_pagination',
@@ -240,8 +226,24 @@ LOGGING = {
     }
 }
 
+# Django 6.1+ MAILERS setting (replaces EMAIL_BACKEND). Unlike EMAIL_HOST,
+# the SMTP mailer has no default host, so keep the old 'localhost' default.
+# The only mail sent is the error report to ADMINS, which must never turn a
+# 500 into a crash, so failures are silent as they were before MAILERS.
+MAILERS = {
+    'default': {
+        'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+        'OPTIONS': {
+            'host': os.environ.get('EMAIL_HOST', 'localhost'),
+            'fail_silently': True,
+        },
+    },
+}
+
 if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    MAILERS['default'] = {
+        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+    }
 
     INSTALLED_APPS = INSTALLED_APPS + (
         'devtools',

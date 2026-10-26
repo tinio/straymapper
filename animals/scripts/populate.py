@@ -9,6 +9,6 @@ def run():
     fn = "straydata-9-8-2012-8-15-52-AM.csv"
     csv_file = open("%s/../fixtures/%s" % (os.path.dirname(__file__), fn))
     contents = csv.reader(csv_file, dialect='excel', delimiter=',')
-    header = contents.next()
+    header = next(contents)
     for index, row in enumerate(contents):
         populate.apply_async(args=[row], countdown=index)

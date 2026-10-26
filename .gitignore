@@ -34,3 +34,6 @@ local_settings.*
 
 #celeryd
 celerybeat-schedule.db
+
+#uploaded media (development)
+media/

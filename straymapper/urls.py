@@ -2,9 +2,7 @@ from django.urls import include, path, re_path
 from django.views.generic import TemplateView
 from django.contrib import admin
 from django.conf import settings
-
-# Admin autodiscover is no longer needed in modern Django
-admin.autodiscover()
+from django.conf.urls.static import static
 
 from animals import views as animal_views
 
@@ -19,9 +17,10 @@ urlpatterns = [
     re_path(r'^$', animal_views.index, name='home'),
 ]
 
-# Add debug toolbar URLs in development
+# Add debug toolbar and uploaded media URLs in development
 if settings.DEBUG:
     import debug_toolbar
     urlpatterns = [
         path('__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns
+    ] + urlpatterns + static(settings.MEDIA_URL,
+                             document_root=settings.MEDIA_ROOT)

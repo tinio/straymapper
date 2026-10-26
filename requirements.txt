@@ -1,15 +1,21 @@
-# Production requirements for Stray Mapper - Updated to Django 4.2 LTS
-Django==4.2.16
-Pillow==11.0.0
-celery==5.5.3
-django-celery-beat==2.8.0
+# Production requirements for Stray Mapper - Django 6.1
+# Django 6.1 requires Python 3.12 or higher
+# NOTE: django-celery-beat was removed because no released version supports
+# Django 6.1 yet (see celery/django-celery-beat#1079), and the project does not
+# use it (no CELERY_BEAT_SCHEDULER is configured).
+Django==6.1.2
+Pillow==13.0.0
+boto3==1.43.118
+celery[redis]==5.6.3
+dj-database-url==3.1.2
 django-el-pagination==4.1.2
-django-extensions==3.2.3
-django-imagekit==5.0.0
-geopy==2.4.1
-gunicorn==23.0.0
-django-storages==1.14.4
-psycopg2-binary==2.9.10
-python-dateutil==2.9.0.post0
-pytz==2024.2
-requests==2.32.3
+django-extensions==4.1
+django-imagekit==6.1.1
+django-storages==1.14.6
+geopy==2.5.0
+gunicorn==26.2.0
+psycopg2-binary==2.9.13
+python-dateutil==2.9.0.post0  # botocore requires <3.0.0
+pytz==2026.5
+redis==6.4.0  # Highest version allowed by kombu's redis extra (<6.5)
+requests==2.34.2

@@ -12,7 +12,9 @@
     <div class="span8">
         <h4>Missing {{report.animal_type|title}}</h4>
         <h2>{{report.name}}</h2>
-        <img src="{{report.photo.url}}">
+        {% if report.photo %}
+            <img src="{{report.photo.url}}">
+        {% endif %}
     </div>
     <div class="span4">
         <br/><br/><br/>

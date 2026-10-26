@@ -1,6 +1,14 @@
 import csv
 import io
 
+from django.conf import settings
+from geopy.geocoders import GoogleV3
+
+
+def geocode(query):
+    # Raises geopy.exc.ConfigurationError when GOOGLE_API_KEY is not set.
+    return GoogleV3(api_key=settings.GOOGLE_API_KEY).geocode(query)
+
 
 def unicode_csv_reader(csv_data, dialect=csv.excel, **kwargs):
     """Yield rows from a file-like object of UTF-8 encoded bytes.

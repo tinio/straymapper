@@ -1,11 +1,9 @@
 from datetime import datetime, date
 
 from celery import shared_task
-from geopy.geocoders import GoogleV3
 
 from animals.models import Animal
-
-g = GoogleV3(api_key='AIzaSyAZoNPSlRTETltbmJvgYYqol0SLAVBgKs')
+from straymapper.helpers import geocode
 
 
 @shared_task
@@ -17,7 +15,7 @@ def populate(row):
         location = row[1]
         location_found = True
         try:
-            (place, point) = g.geocode(location)
+            (place, point) = geocode(location)
         except:
             location_found = False
             print('location not found')

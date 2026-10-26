@@ -7,7 +7,11 @@
         </td>
         <td>
             <class='span2'><p align='right'>
-                <img src="{{animal.thumbnail.url}}">
+                {% if animal.photo.size > 231 %}
+                    <img src="{{animal.thumbnail.url}}">
+                {% else %}
+                    <img src="{{STATIC_URL}}img/NoImage.jpg">
+                {% endif %}
                 <br/>Think this is your pet?<br/> <a href='{% url "animals_view" animal.animal_id %}'>Take a Closer Look</a>
             </p>
         </td>
